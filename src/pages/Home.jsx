@@ -43,7 +43,7 @@ function Home() {
       {/* HERO SECTION (UPGRADED CTA ADDED) */}
       <section style={styles.hero}>
         <h1 style={styles.title}>
-          Psychosocial Disorders Learning System
+          Psychosocial Disorders Support System
         </h1>
 
         <p style={styles.subtitle}>
@@ -53,14 +53,14 @@ function Home() {
 
         <div style={styles.buttons}>
           <Link to="/learn" style={styles.primaryBtn}>
-            Start Learning
+            Start  your journey
           </Link>
 
           <Link to="/chatbot" style={styles.secondaryBtn}>
             Talk to Assistant
           </Link>
 
-          {/* 🆕 EMERGENCY CTA */}
+          {/* EMERGENCY CTA */}
           <Link to="/counselors" style={styles.emergencyBtn}>
             🚨 Need Help Now
           </Link>
@@ -131,7 +131,7 @@ function Home() {
 
         <div style={styles.quickGrid}>
           <Link to="/chatbot">🤖 Chatbot</Link>
-          <Link to="/learn">📚 Learn</Link>
+          <Link to="/learn">heal</Link>
           <Link to="/counselors">📞 Counselors</Link>
           <Link to="/admin">📊 Admin</Link>
         </div>
