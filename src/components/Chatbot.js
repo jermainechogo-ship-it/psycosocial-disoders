@@ -1,247 +1,305 @@
-import React, { useState, useRef } from "react";
-import "../css/chatbot.css";
-import disorders from "../data/disorders";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
 
 function Chatbot() {
   const [messages, setMessages] = useState([
     {
-      text:
-        "SYSTEM ONLINE... Mental Health Assistant activated. I can help you explore psychosocial disorders, symptoms, and coping strategies.",
       sender: "bot",
+      text:
+        "Hello. I am your psychosocial support assistant. How are you feeling today?",
     },
   ]);
 
   const [input, setInput] = useState("");
-  const [isOpen, setIsOpen] = useState(false);
-  const [typing, setTyping] = useState(false);
 
-  // 🧲 DRAG STATE
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const dragging = useRef(false);
-  const offset = useRef({ x: 0, y: 0 });
+  // SEVERITY DETECTION
+  const detectSeverity = (text) => {
+    const lower = text.toLowerCase();
 
-  const options = ["Depression", "Anxiety", "Trauma", "Help"];
-  const detectSeverity = (msg) => {
-  msg = msg.toLowerCase();
+    const severeWords = [
+      "suicide",
+      "kill myself",
+      "hopeless",
+      "self harm",
+      "die",
+      "worthless",
+      "severe depression",
+      "can't continue",
+    ];
 
-  const severeWords = ["suicide", "kill myself", "end my life", "can’t go on"];
-  const moderateWords = ["hopeless", "breaking down", "overwhelmed", "crying all the time"];
-  const mildWords = ["sad", "tired", "stressed", "low mood"];
+    const moderateWords = [
+      "anxiety",
+      "stress",
+      "panic",
+      "depressed",
+      "fear",
+      "burnout",
+      "lonely",
+      "sad",
+    ];
 
-  if (severeWords.some(w => msg.includes(w))) return "severe";
-  if (moderateWords.some(w => msg.includes(w))) return "moderate";
-  if (mildWords.some(w => msg.includes(w))) return "mild";
-
-  return "normal";
-};
-
-  const symptomMap = {
-    depression: ["sad", "hopeless", "tired", "low mood", "empty"],
-    anxiety: ["worry", "panic", "nervous", "restless", "overthinking"],
-    trauma: ["flashback", "trauma", "nightmare", "ptsd", "fear"],
-  };
-
-  // 🧠 BOT LOGIC (NOW INCLUDES COPING STRATEGIES)
-  const botReply = (msg) => {
-    msg = msg.toLowerCase();
-
-    const found = disorders.find((d) =>
-      d.name.toLowerCase().includes(msg)
-    );
-
-    if (found) {
-      return {
-        text:
-`${found.name}
-
-${found.description}
-
-Category: ${found.category}
-
-Symptoms:
-- ${found.symptoms.join("\n- ")}
-
-Coping Strategies:
-- ${found.coping.join("\n- ")}`,
-        link: found.id,
-      };
-    }
-
-    for (let key in symptomMap) {
-      if (symptomMap[key].some((word) => msg.includes(word))) {
-        const match = disorders.find((d) => d.id === key);
-
-        if (match) {
-          return {
-            text:
-`Your symptoms may be linked to ${match.name}.
-
-Symptoms:
-- ${match.symptoms.join("\n- ")}
-
-Coping Strategies:
-- ${match.coping.join("\n- ")}
-
-Click below for full article.`,
-            link: match.id,
-          };
-        }
+    for (let word of severeWords) {
+      if (lower.includes(word)) {
+        return "severe";
       }
     }
 
-    return {
-      text:
-        "Try describing symptoms like sadness, worry, or trauma. I’ll guide you.",
-    };
-  };
-
-  const sendMessage = (text) => {
-    if (!text.trim()) return;
-
-    setMessages((prev) => [...prev, { text, sender: "user" }]);
-    setInput("");
-    setTyping(true);
-
-    setTimeout(() => {
-      const response = botReply(text);
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          text: response.text,
-          sender: "bot",
-          link: response.link || null,
-        },
-      ]);
-
-      setTyping(false);
-    }, 600);
-    const severity = detectSeverity(text);
-
-if (severity === "severe") {
-  return setMessages(prev => [
-    ...prev,
-    {
-      text:
-        " It sounds like you're going through something very serious.\nWe strongly recommend speaking to a counselor immediately.",
-      sender: "bot",
-      link: "counselor"
+    for (let word of moderateWords) {
+      if (lower.includes(word)) {
+        return "moderate";
+      }
     }
-  ]);
-}
-const logs = JSON.parse(localStorage.getItem("logs") || "[]");
 
-  logs.push({
-    message: text,
-    severity: detectSeverity(text),
-    time: new Date().toISOString()
-   });
-
-   localStorage.setItem("logs", JSON.stringify(logs));
+    return "mild";
   };
 
-  // 🧲 DRAG FUNCTIONS
-  const startDrag = (e) => {
-    dragging.current = true;
-    offset.current = {
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
+  // BOT RESPONSE SYSTEM
+  const generateResponse = (severity) => {
+    if (severity === "severe") {
+      return `
+⚠ I detect severe emotional distress.
+
+I strongly recommend speaking with a counselor immediately.
+
+Please remember:
+• You are not alone
+• Professional help is available
+• Support can make a difference
+
+A counselor support option is available below.
+      `;
+    }
+
+    if (severity === "moderate") {
+      return `
+I notice signs of emotional stress or anxiety.
+
+Here are some recommendations:
+• Take short mental breaks
+• Practice breathing exercises
+• Talk to someone you trust
+• Consider counseling support if stress continues
+      `;
+    }
+
+    return `
+Your current emotional indicators appear relatively stable.
+
+Continue maintaining:
+• healthy rest
+• work-life balance
+• social connection
+• stress management habits
+    `;
+  };
+
+  // SEND MESSAGE
+  const sendMessage = () => {
+    if (!input.trim()) return;
+
+    const userMessage = {
+      sender: "user",
+      text: input,
     };
-  };
 
-  const onDrag = (e) => {
-    if (!dragging.current) return;
+    const severity = detectSeverity(input);
 
-    setPosition({
-      x: e.clientX - offset.current.x,
-      y: e.clientY - offset.current.y,
+    // STORE LOGS
+    const existingLogs = JSON.parse(
+      localStorage.getItem("logs") || "[]"
+    );
+
+    existingLogs.push({
+      message: input,
+      severity,
+      date: new Date().toLocaleString(),
     });
-  };
 
-  const stopDrag = () => {
-    dragging.current = false;
+    localStorage.setItem(
+      "logs",
+      JSON.stringify(existingLogs)
+    );
+
+    const botMessage = {
+      sender: "bot",
+      text: generateResponse(severity),
+      severity,
+    };
+
+    setMessages((prev) => [
+      ...prev,
+      userMessage,
+      botMessage,
+    ]);
+
+    setInput("");
   };
 
   return (
-    <div>
-      {/* Floating Button */}
-      <button
-        className="chat-toggle"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        Chat
-      </button>
+    <div style={styles.container}>
+      <h1 style={styles.title}>
+        AI Psychosocial Support Assistant
+      </h1>
 
-      {isOpen && (
-        <div
-          className="chat-window"
-          style={{
-            transform: `translate(${position.x}px, ${position.y}px)`,
-          }}
-          onMouseMove={onDrag}
-          onMouseUp={stopDrag}
-          onMouseLeave={stopDrag}
-        >
-          {/* DRAG HEADER */}
-          <div className="chat-header" onMouseDown={startDrag}>
-            Mental Health Assistant (drag me)
-          </div>
+      <div style={styles.chatBox}>
+        {messages.map((msg, index) => (
+          <div
+            key={index}
+            style={{
+              ...styles.message,
+              alignSelf:
+                msg.sender === "user"
+                  ? "flex-end"
+                  : "flex-start",
 
-          {/* BODY */}
-          <div className="chat-body">
-            {messages.map((msg, i) => (
-              <div key={i} className={`msg ${msg.sender}`}>
-                <div style={{ whiteSpace: "pre-line" }}>
-                  {msg.text}
-                </div>
+              background:
+                msg.sender === "user"
+                  ? "#2563eb"
+                  : "#ffffff",
 
-                {msg.link && (
-                  <Link
-                    to={`/learn/${msg.link}`}
-                    onClick={() => setIsOpen(false)}
-                    style={{
-                      color: "#2563eb",
-                      fontWeight: "bold",
-                      display: "block",
-                      marginTop: "8px",
-                    }}
-                  >
-                    Open Full Article →
-                  </Link>
-                )}
+              color:
+                msg.sender === "user"
+                  ? "white"
+                  : "#111827",
+            }}
+          >
+            <p>{msg.text}</p>
+
+            {/* SEVERITY BADGE */}
+            {msg.severity && (
+              <div
+                style={{
+                  ...styles.badge,
+
+                  background:
+                    msg.severity === "severe"
+                      ? "#ef4444"
+                      : msg.severity === "moderate"
+                      ? "#f59e0b"
+                      : "#22c55e",
+                }}
+              >
+                {msg.severity.toUpperCase()}
               </div>
-            ))}
+            )}
 
-            {typing && (
-              <div className="typing">assistant is typing...</div>
+            {/* COUNSELOR CTA */}
+            {msg.severity === "severe" && (
+              <button
+                style={styles.counselorBtn}
+                onClick={() =>
+                  window.location.href = "/counselors"
+                }
+              >
+                Speak to Counselor
+              </button>
             )}
           </div>
+        ))}
+      </div>
 
-          {/* QUICK BUTTONS */}
-          <div className="chat-buttons">
-            {options.map((opt) => (
-              <button key={opt} onClick={() => sendMessage(opt)}>
-                {opt}
-              </button>
-            ))}
-          </div>
+      {/* INPUT */}
+      <div style={styles.inputArea}>
+        <input
+          type="text"
+          placeholder="Describe how you feel..."
+          value={input}
+          onChange={(e) =>
+            setInput(e.target.value)
+          }
+          style={styles.input}
+        />
 
-          {/* INPUT */}
-          <div className="chat-input">
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about symptoms..."
-            />
-            <button onClick={() => sendMessage(input)}>
-              Send
-            </button>
-          </div>
-        </div>
-      )}
+        <button
+          onClick={sendMessage}
+          style={styles.sendBtn}
+        >
+          Send
+        </button>
+      </div>
     </div>
   );
 }
+
+const styles = {
+  container: {
+    padding: "30px",
+    background: "#f4f7fb",
+    minHeight: "100vh",
+    display: "flex",
+    flexDirection: "column",
+  },
+
+  title: {
+    textAlign: "center",
+    marginBottom: "20px",
+    color: "#1e3a8a",
+  },
+
+  chatBox: {
+    flex: 1,
+    background: "white",
+    borderRadius: "14px",
+    padding: "20px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
+    overflowY: "auto",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+  },
+
+  message: {
+    maxWidth: "75%",
+    padding: "16px",
+    borderRadius: "14px",
+    position: "relative",
+    lineHeight: 1.6,
+    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+  },
+
+  badge: {
+    marginTop: "12px",
+    color: "white",
+    display: "inline-block",
+    padding: "4px 10px",
+    borderRadius: "8px",
+    fontSize: "12px",
+    fontWeight: "bold",
+  },
+
+  counselorBtn: {
+    marginTop: "15px",
+    background: "#dc2626",
+    color: "white",
+    border: "none",
+    padding: "10px 14px",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontWeight: "bold",
+  },
+
+  inputArea: {
+    display: "flex",
+    marginTop: "20px",
+    gap: "10px",
+  },
+
+  input: {
+    flex: 1,
+    padding: "14px",
+    borderRadius: "10px",
+    border: "1px solid #ccc",
+    fontSize: "16px",
+  },
+
+  sendBtn: {
+    background: "#2563eb",
+    color: "white",
+    border: "none",
+    padding: "14px 20px",
+    borderRadius: "10px",
+    cursor: "pointer",
+    fontWeight: "bold",
+  },
+};
 
 export default Chatbot;
