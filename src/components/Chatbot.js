@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 function Chatbot() {
   const [messages, setMessages] = useState([
@@ -10,8 +10,21 @@ function Chatbot() {
   ]);
 
   const [input, setInput] = useState("");
+  const [moodLevel, setMoodLevel] = useState("stable");
 
-  // SEVERITY DETECTION
+  // 🧠 MEMORY LOAD (NEW)
+  useEffect(() => {
+    const logs = JSON.parse(localStorage.getItem("logs") || "[]");
+
+    const severeCount = logs.filter((l) => l.severity === "severe").length;
+    const moderateCount = logs.filter((l) => l.severity === "moderate").length;
+
+    if (severeCount >= 3) setMoodLevel("critical");
+    else if (moderateCount >= 5) setMoodLevel("unstable");
+    else setMoodLevel("stable");
+  }, []);
+
+  // SEVERITY DETECTION (ENHANCED)
   const detectSeverity = (text) => {
     const lower = text.toLowerCase();
 
@@ -22,8 +35,8 @@ function Chatbot() {
       "self harm",
       "die",
       "worthless",
-      "severe depression",
       "can't continue",
+      "end it all",
     ];
 
     const moderateWords = [
@@ -35,64 +48,68 @@ function Chatbot() {
       "burnout",
       "lonely",
       "sad",
+      "overwhelmed",
     ];
 
-    for (let word of severeWords) {
-      if (lower.includes(word)) {
-        return "severe";
-      }
-    }
-
-    for (let word of moderateWords) {
-      if (lower.includes(word)) {
-        return "moderate";
-      }
-    }
-
+    if (severeWords.some((w) => lower.includes(w))) return "severe";
+    if (moderateWords.some((w) => lower.includes(w))) return "moderate";
     return "mild";
   };
 
-  // BOT RESPONSE SYSTEM
+  // 🧠 ADAPTIVE RESPONSE ENGINE (NEW UPGRADE)
   const generateResponse = (severity) => {
+    if (moodLevel === "critical") {
+      return `
+⚠ SYSTEM ALERT: Repeated high-risk emotional patterns detected.
+
+I strongly recommend immediate human support.
+
+You are not alone. Please consider speaking to a counselor right now.
+      `;
+    }
+
     if (severity === "severe") {
       return `
-⚠ I detect severe emotional distress.
+🚨 High emotional distress detected.
 
-I strongly recommend speaking with a counselor immediately.
+I want you to pause for a moment.
 
-Please remember:
-• You are not alone
-• Professional help is available
-• Support can make a difference
+You are safe in this space.
 
-A counselor support option is available below.
+Immediate support options are recommended.
       `;
     }
 
     if (severity === "moderate") {
       return `
-I notice signs of emotional stress or anxiety.
+I’m noticing emotional strain patterns.
 
-Here are some recommendations:
-• Take short mental breaks
-• Practice breathing exercises
-• Talk to someone you trust
-• Consider counseling support if stress continues
+Try this:
+• slow breathing (4–4–6)
+• short walk or break
+• talk to someone you trust
+• reduce workload pressure if possible
       `;
     }
 
     return `
-Your current emotional indicators appear relatively stable.
+You appear relatively stable right now.
 
-Continue maintaining:
-• healthy rest
-• work-life balance
+Keep reinforcing:
+• rest cycles
 • social connection
-• stress management habits
+• emotional awareness
+• healthy workload balance
     `;
   };
 
-  // SEND MESSAGE
+  // 📊 EMOTION SCORING (NEW)
+  const calculateEmotionScore = (severity) => {
+    const map = { mild: 1, moderate: 2, severe: 3 };
+    return map[severity] || 1;
+  };
+
+  // SEND MESSAGE (UPGRADED ENGINE)
   const sendMessage = () => {
     if (!input.trim()) return;
 
@@ -102,22 +119,29 @@ Continue maintaining:
     };
 
     const severity = detectSeverity(input);
+    const score = calculateEmotionScore(severity);
 
-    // STORE LOGS
-    const existingLogs = JSON.parse(
-      localStorage.getItem("logs") || "[]"
-    );
+    // 💾 LOGGING SYSTEM (ENHANCED)
+    const existingLogs = JSON.parse(localStorage.getItem("logs") || "[]");
 
-    existingLogs.push({
-      message: input,
-      severity,
-      date: new Date().toLocaleString(),
-    });
+    const updatedLogs = [
+      ...existingLogs,
+      {
+        message: input,
+        severity,
+        score,
+        date: new Date().toLocaleString(),
+      },
+    ];
 
-    localStorage.setItem(
-      "logs",
-      JSON.stringify(existingLogs)
-    );
+    localStorage.setItem("logs", JSON.stringify(updatedLogs));
+
+    // 🔁 RECALCULATE MOOD STATE
+    const severeCount = updatedLogs.filter((l) => l.severity === "severe").length;
+    const moderateCount = updatedLogs.filter((l) => l.severity === "moderate").length;
+
+    if (severeCount >= 3) setMoodLevel("critical");
+    else if (moderateCount >= 5) setMoodLevel("unstable");
 
     const botMessage = {
       sender: "bot",
@@ -125,17 +149,17 @@ Continue maintaining:
       severity,
     };
 
-    setMessages((prev) => [
-      ...prev,
-      userMessage,
-      botMessage,
-    ]);
-
+    setMessages((prev) => [...prev, userMessage, botMessage]);
     setInput("");
   };
 
   return (
     <div style={styles.container}>
+      {/* 🧠 SYSTEM STATUS BAR (NEW) */}
+      <div style={styles.statusBar}>
+        System Mood: <b>{moodLevel.toUpperCase()}</b>
+      </div>
+
       <h1 style={styles.title}>
         AI Psychosocial Support Assistant
       </h1>
@@ -147,29 +171,18 @@ Continue maintaining:
             style={{
               ...styles.message,
               alignSelf:
-                msg.sender === "user"
-                  ? "flex-end"
-                  : "flex-start",
-
+                msg.sender === "user" ? "flex-end" : "flex-start",
               background:
-                msg.sender === "user"
-                  ? "#2563eb"
-                  : "#ffffff",
-
-              color:
-                msg.sender === "user"
-                  ? "white"
-                  : "#111827",
+                msg.sender === "user" ? "#2563eb" : "#ffffff",
+              color: msg.sender === "user" ? "white" : "#111827",
             }}
           >
             <p>{msg.text}</p>
 
-            {/* SEVERITY BADGE */}
             {msg.severity && (
               <div
                 style={{
                   ...styles.badge,
-
                   background:
                     msg.severity === "severe"
                       ? "#ef4444"
@@ -182,15 +195,13 @@ Continue maintaining:
               </div>
             )}
 
-            {/* COUNSELOR CTA */}
+            {/* 🚨 AUTO ESCALATION BUTTON */}
             {msg.severity === "severe" && (
               <button
                 style={styles.counselorBtn}
-                onClick={() =>
-                  window.location.href = "/counselors"
-                }
+                onClick={() => (window.location.href = "/counselors")}
               >
-                Speak to Counselor
+                🚨 Immediate Counselor Access
               </button>
             )}
           </div>
@@ -203,16 +214,11 @@ Continue maintaining:
           type="text"
           placeholder="Describe how you feel..."
           value={input}
-          onChange={(e) =>
-            setInput(e.target.value)
-          }
+          onChange={(e) => setInput(e.target.value)}
           style={styles.input}
         />
 
-        <button
-          onClick={sendMessage}
-          style={styles.sendBtn}
-        >
+        <button onClick={sendMessage} style={styles.sendBtn}>
           Send
         </button>
       </div>
@@ -227,6 +233,16 @@ const styles = {
     minHeight: "100vh",
     display: "flex",
     flexDirection: "column",
+  },
+
+  statusBar: {
+    background: "#0f172a",
+    color: "white",
+    padding: "10px",
+    borderRadius: "10px",
+    marginBottom: "10px",
+    textAlign: "center",
+    fontSize: "14px",
   },
 
   title: {

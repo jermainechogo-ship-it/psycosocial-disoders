@@ -11,6 +11,13 @@ const CounselorDashboard = () => {
   const [tickets, setTickets] = useState([]);
   const [bookings, setBookings] = useState([]);
 
+  // 🔥 NEW STATES
+  const [search, setSearch] = useState("");
+  const [notifications, setNotifications] = useState([]);
+  const [motivation, setMotivation] = useState(
+    "🌱 Every conversation can change someone's day."
+  );
+
   // 💾 Load data from localStorage
   useEffect(() => {
     const savedTickets = localStorage.getItem("tickets");
@@ -20,15 +27,44 @@ const CounselorDashboard = () => {
     if (savedBookings) setBookings(JSON.parse(savedBookings));
   }, []);
 
+  // 🔔 AUTO NOTIFICATIONS SYSTEM
+  useEffect(() => {
+    const newNotifications = [];
+
+    tickets.forEach((t) => {
+      if (t.status === "open") {
+        newNotifications.push(
+          `📩 Open ticket from ${t.name}`
+        );
+      }
+    });
+
+    bookings.forEach((b) => {
+      if (b.status === "pending") {
+        newNotifications.push(
+          `📅 Pending booking from ${b.name}`
+        );
+      }
+    });
+
+    setNotifications(newNotifications);
+  }, [tickets, bookings]);
+
   // 💾 Sync helpers
   const updateTickets = (updated) => {
     setTickets(updated);
-    localStorage.setItem("tickets", JSON.stringify(updated));
+    localStorage.setItem(
+      "tickets",
+      JSON.stringify(updated)
+    );
   };
 
   const updateBookings = (updated) => {
     setBookings(updated);
-    localStorage.setItem("bookings", JSON.stringify(updated));
+    localStorage.setItem(
+      "bookings",
+      JSON.stringify(updated)
+    );
   };
 
   // 🔄 Ticket actions
@@ -104,6 +140,23 @@ const CounselorDashboard = () => {
     updateBookings(updated);
   };
 
+  // 🔥 QUICK NOTES SYSTEM
+  const saveQuickNote = () => {
+    localStorage.setItem(
+      "dashboardNote",
+      motivation
+    );
+
+    alert("📝 Wellness note saved");
+  };
+
+  // 🔎 SEARCH FILTER
+  const filteredBookings = bookings.filter((b) =>
+    b.name
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  );
+
   // 🔒 ROLE PROTECTION
   if (role === "user") {
     return (
@@ -121,7 +174,36 @@ const CounselorDashboard = () => {
 
   return (
     <div style={styles.container}>
-      <h1>👨‍⚕️ Counselor Dashboard</h1>
+      {/* HERO */}
+      <div style={styles.hero}>
+        <div>
+          <h1>👨‍⚕️ Counselor Dashboard</h1>
+
+          <p>
+            Welcome back,{" "}
+            <b>{user?.email}</b>
+          </p>
+        </div>
+
+        <div style={styles.roleBadge}>
+          {role.toUpperCase()}
+        </div>
+      </div>
+
+      {/* 🔔 NOTIFICATIONS */}
+      <div style={styles.notificationPanel}>
+        <h3>🔔 Live Notifications</h3>
+
+        {notifications.length === 0 ? (
+          <p>No new notifications.</p>
+        ) : (
+          notifications.map((n, i) => (
+            <div key={i} style={styles.notification}>
+              {n}
+            </div>
+          ))
+        )}
+      </div>
 
       {/* 📊 STATS */}
       <div style={styles.statsGrid}>
@@ -159,6 +241,38 @@ const CounselorDashboard = () => {
 
           <p>Approved Sessions</p>
         </div>
+      </div>
+
+      {/* 🔍 SEARCH */}
+      <div style={styles.searchBox}>
+        <input
+          placeholder="🔎 Search bookings by name..."
+          value={search}
+          onChange={(e) =>
+            setSearch(e.target.value)
+          }
+          style={styles.searchInput}
+        />
+      </div>
+
+      {/* 🌱 WELLNESS NOTE */}
+      <div style={styles.noteCard}>
+        <h3>🌱 Counselor Wellness Note</h3>
+
+        <textarea
+          value={motivation}
+          onChange={(e) =>
+            setMotivation(e.target.value)
+          }
+          style={styles.textarea}
+        />
+
+        <button
+          onClick={saveQuickNote}
+          style={styles.saveBtn}
+        >
+          Save Note
+        </button>
       </div>
 
       {/* 📩 TICKETS */}
@@ -218,10 +332,10 @@ const CounselorDashboard = () => {
         📅 Bookings
       </h2>
 
-      {bookings.length === 0 ? (
+      {filteredBookings.length === 0 ? (
         <p>No bookings available.</p>
       ) : (
-        bookings.map((b) => (
+        filteredBookings.map((b) => (
           <div
             key={b.id}
             style={styles.itemCard}
@@ -260,7 +374,9 @@ const CounselorDashboard = () => {
               <div
                 style={styles.decisionPanel}
               >
-                <h4>🧠 Decision Panel</h4>
+                <h4>
+                  🧠 Decision Panel
+                </h4>
 
                 <div style={styles.actions}>
                   <button
@@ -311,8 +427,29 @@ const styles = {
   container: {
     padding: "20px",
     fontFamily: "Arial",
-    maxWidth: "1000px",
+    maxWidth: "1100px",
     margin: "auto",
+    background: "#f8fafc",
+    minHeight: "100vh",
+  },
+
+  hero: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    background:
+      "linear-gradient(135deg,#0f172a,#1e3a8a)",
+    color: "white",
+    padding: "25px",
+    borderRadius: "16px",
+    marginBottom: "20px",
+  },
+
+  roleBadge: {
+    background: "#22c55e",
+    padding: "10px 18px",
+    borderRadius: "999px",
+    fontWeight: "bold",
   },
 
   restricted: {
@@ -321,44 +458,105 @@ const styles = {
     fontFamily: "Arial",
   },
 
+  notificationPanel: {
+    background: "white",
+    padding: "18px",
+    borderRadius: "14px",
+    marginBottom: "20px",
+    boxShadow:
+      "0 4px 12px rgba(0,0,0,0.08)",
+  },
+
+  notification: {
+    background: "#eff6ff",
+    padding: "10px",
+    borderRadius: "8px",
+    marginTop: "8px",
+  },
+
   statsGrid: {
     display: "grid",
     gridTemplateColumns:
-      "repeat(4, 1fr)",
-    gap: "10px",
+      "repeat(auto-fit,minmax(200px,1fr))",
+    gap: "15px",
     marginBottom: "20px",
   },
 
   cardBox: {
     background: "#0f172a",
     color: "white",
-    padding: "15px",
-    borderRadius: "10px",
+    padding: "20px",
+    borderRadius: "14px",
     textAlign: "center",
+    boxShadow:
+      "0 4px 12px rgba(0,0,0,0.15)",
+  },
+
+  searchBox: {
+    marginBottom: "20px",
+  },
+
+  searchInput: {
+    width: "100%",
+    padding: "12px",
+    borderRadius: "10px",
+    border: "1px solid #ccc",
+  },
+
+  noteCard: {
+    background: "white",
+    padding: "20px",
+    borderRadius: "14px",
+    marginBottom: "25px",
+    boxShadow:
+      "0 4px 12px rgba(0,0,0,0.08)",
+  },
+
+  textarea: {
+    width: "100%",
+    minHeight: "100px",
+    marginTop: "10px",
+    padding: "10px",
+    borderRadius: "10px",
+    border: "1px solid #ccc",
+  },
+
+  saveBtn: {
+    marginTop: "10px",
+    padding: "10px 16px",
+    border: "none",
+    borderRadius: "10px",
+    background: "#2563eb",
+    color: "white",
+    cursor: "pointer",
   },
 
   sectionTitle: {
     marginTop: "30px",
+    marginBottom: "15px",
   },
 
   itemCard: {
     border: "1px solid #ddd",
-    padding: "10px",
-    borderRadius: "8px",
-    marginBottom: "10px",
+    padding: "16px",
+    borderRadius: "12px",
+    marginBottom: "14px",
     background: "white",
+    boxShadow:
+      "0 2px 8px rgba(0,0,0,0.05)",
   },
 
   actions: {
     display: "flex",
     gap: "10px",
     marginTop: "10px",
+    flexWrap: "wrap",
   },
 
   decisionPanel: {
-    marginTop: "10px",
-    padding: "10px",
-    borderRadius: "8px",
+    marginTop: "12px",
+    padding: "12px",
+    borderRadius: "10px",
     background: "#f1f5f9",
     border: "1px solid #cbd5e1",
   },
